@@ -1,4 +1,4 @@
-# CodeShareClone
+# CodeTogether
 
 A collaborative real-time code sharing platform inspired by CodeShare, with improvements:
 - Dark and Light theme toggle
