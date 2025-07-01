@@ -26,4 +26,3 @@ A collaborative real-time code sharing platform inspired by CodeShare, with impr
 
 ---
 
-This project is for educational purposes only. 
