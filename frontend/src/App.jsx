@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import io from 'socket.io-client';
+import axios from 'axios';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -22,6 +23,16 @@ import {
   Sparkles,
   Settings,
 } from 'lucide-react';
+
+// API configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+});
 
 /**
  * Generate a random 6-character alphanumeric room code
@@ -63,7 +74,7 @@ function downloadCode(code, language, roomCode) {
   };
   
   const extension = fileExtensions[language] || 'txt';
-  const filename = `codeshare-${roomCode}.${extension}`;
+  const filename = `codetogether-${roomCode}.${extension}`;
   
   const blob = new Blob([code], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
@@ -89,39 +100,52 @@ function LandingPage() {
 
   // Initialize Socket.io connection on mount
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     return () => {
       socketRef.current.disconnect();
     };
   }, []);
 
   // Handle creating a new room
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     const newRoom = generateRoomCode();
-    socketRef.current.emit('create-room', newRoom, (created) => {
-      if (created) {
-        navigate(`/room/${newRoom}`);
+    try {
+      const response = await api.post('/api/rooms', { roomCode: newRoom });
+      if (response.data.success) {
+        // Use the normalized room code from the response
+        navigate(`/room/${response.data.roomCode}`);
       } else {
         // If creation fails, try again
         handleCreateRoom();
       }
-    });
+    } catch (error) {
+      console.error('Error creating room:', error);
+      // If API fails, try again
+      handleCreateRoom();
+    }
   };
 
   // Handle joining an existing room
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     if (!joinCode.trim()) return;
 
     setLoading(true);
     setJoinError('');
-    socketRef.current.emit('check-room', joinCode, (exists) => {
-      setLoading(false);
-      if (exists) {
-        navigate(`/room/${joinCode}`);
+    
+    try {
+      const response = await api.get(`/api/rooms/${joinCode}`);
+      if (response.data.exists) {
+        // Use the normalized room code (uppercase) for navigation
+        navigate(`/room/${joinCode.toUpperCase()}`);
       } else {
         setJoinError('No Session found with that code.');
       }
-    });
+    } catch (error) {
+      console.error('Error checking room:', error);
+      setJoinError('Error checking room. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -158,7 +182,12 @@ function LandingPage() {
             <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
               <Code2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900 dark:text-white">CodeTogether</span>
+            <span 
+              className="text-xl font-bold text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition"
+              onClick={() => navigate('/')}
+            >
+              CodeTogether
+            </span>
           </div>
 
           <Button variant="outline" size="sm" onClick={toggleTheme} className="rounded-full bg-transparent">
@@ -200,23 +229,22 @@ function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5"></div>
                 <CardHeader className="relative">
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Plus className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+                    <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+                      <Plus className="w-5 h-5 text-white" />
                     </div>
-                    <CardTitle className="text-xl dark:text-blue-300">Start New Session</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">Create Session</CardTitle>
                   </div>
-                  <CardDescription className="text-base dark:text-slate-400">
-                    Create a new collaborative coding Session and invite others to join
+                  <CardDescription className="text-slate-600 dark:text-slate-300 text-lg">
+                    Start a new collaborative coding session
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="relative">
                   <Button
                     onClick={handleCreateRoom}
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 py-3 text-lg font-semibold rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
                   >
                     <Plus className="w-5 h-5 mr-2" />
-                    Create Session
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    Create New Session
                   </Button>
                 </CardContent>
               </Card>
@@ -226,42 +254,37 @@ function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5"></div>
                 <CardHeader className="relative">
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Users className="w-5 h-5 text-purple-600 dark:text-blue-300" />
+                    <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                      <Users className="w-5 h-5 text-white" />
                     </div>
-                    <CardTitle className="text-xl dark:text-blue-300">Join Session</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">Join Session</CardTitle>
                   </div>
-                  <CardDescription className="text-base dark:text-slate-400">
-                    Enter a Session code to join an existing collaborative session
+                  <CardDescription className="text-slate-600 dark:text-slate-300 text-lg">
+                    Enter an existing session code
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="relative space-y-4">
                   <div className="space-y-2">
                     <Input
                       type="text"
-                      placeholder="Enter 6-digit Session code"
+                      placeholder="Enter 6-digit session code"
                       value={joinCode}
                       onChange={(e) => setJoinCode(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="h-12 text-center font-mono text-lg tracking-widest"
+                      className="text-center text-lg font-mono tracking-widest py-3 border-2 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl"
                       maxLength={6}
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      spellCheck="false"
                     />
-
                     {joinError && (
-                      <Alert variant="destructive" className="dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="dark:text-red-300">{joinError}</AlertDescription>
+                      <Alert variant="destructive" className="border-red-300 bg-red-50 dark:border-red-500/50 dark:bg-red-950/30 dark:text-red-200">
+                        <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        <AlertDescription className="text-red-700 dark:text-red-200">{joinError}</AlertDescription>
                       </Alert>
                     )}
                   </div>
-
                   <Button
                     onClick={handleJoinRoom}
-                    disabled={!joinCode.trim() || loading}
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+                    disabled={loading || !joinCode.trim()}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 py-3 text-lg font-semibold rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {loading ? (
                       <>
@@ -270,9 +293,8 @@ function LandingPage() {
                       </>
                     ) : (
                       <>
-                        <Users className="w-5 h-5 mr-2" />
+                        <ArrowRight className="w-5 h-5 mr-2" />
                         Join Session
-                        <ArrowRight className="w-4 h-4 ml-2" />
                       </>
                     )}
                   </Button>
@@ -280,53 +302,40 @@ function LandingPage() {
               </Card>
             </div>
 
-            {/* Features grid */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/20 dark:border-slate-700/30">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Zap className="w-6 h-6 text-white" />
+            {/* Features section */}
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Why CodeTogether?</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-6 bg-white/60 dark:bg-slate-800/60 rounded-2xl backdrop-blur-sm">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl w-fit mx-auto mb-4">
+                    <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Real-time Sync</h3>
+                  <p className="text-slate-600 dark:text-slate-300">See changes instantly as your team codes together</p>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Real-time Sync</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  See changes instantly as you and your team code together
-                </p>
-              </div>
-
-              <div className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/20 dark:border-slate-700/30">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Share2 className="w-6 h-6 text-white" />
+                <div className="p-6 bg-white/60 dark:bg-slate-800/60 rounded-2xl backdrop-blur-sm">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl w-fit mx-auto mb-4">
+                    <Share2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Easy Sharing</h3>
+                  <p className="text-slate-600 dark:text-slate-300">Share sessions with a simple 6-digit code</p>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Easy Sharing</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Share Session links with one click and collaborate instantly
-                </p>
-              </div>
-
-              <div className="text-center p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/20 dark:border-slate-700/30">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Download className="w-6 h-6 text-white" />
+                <div className="p-6 bg-white/60 dark:bg-slate-800/60 rounded-2xl backdrop-blur-sm">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl w-fit mx-auto mb-4">
+                    <Code2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Multiple Languages</h3>
+                  <p className="text-slate-600 dark:text-slate-300">Support for JavaScript, Python, Java, and more</p>
                 </div>
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Export Code</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Download your code with proper file extensions
-                </p>
               </div>
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="p-6 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">Built for developers who love to collaborate</p>
-        </footer>
       </div>
     </div>
   );
 }
 
-/**
- * Room editor component for collaborative coding
- */
 function RoomEditor() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
@@ -355,7 +364,7 @@ function RoomEditor() {
 
   // Initialize Socket.io connection on mount
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     return () => {
       socketRef.current.disconnect();
     };
@@ -364,7 +373,7 @@ function RoomEditor() {
   // Track session creator in localStorage
   useEffect(() => {
     if (!roomCode) return;
-    const creatorKey = `codeshare_session_creator_${roomCode}`;
+    const creatorKey = `codetogether_session_creator_${roomCode}`;
     if (!localStorage.getItem(creatorKey)) {
       // If not set, set as creator
       localStorage.setItem(creatorKey, 'true');
@@ -380,25 +389,44 @@ function RoomEditor() {
     
     setLoading(true);
     setJoinError('');
-    socketRef.current.emit('check-room', roomCode, (exists) => {
-      if (exists) {
-        setLoading(false);
-        setJoined(true);
-      } else {
-        // Try to create the room if it doesn't exist
-        socketRef.current.emit('create-room', roomCode, (created) => {
+    
+    const checkAndJoinRoom = async () => {
+      try {
+        const response = await api.get(`/api/rooms/${roomCode}`);
+        if (response.data.exists) {
           setLoading(false);
-          if (created) {
-            setJoined(true);
-          } else {
+          setJoined(true);
+        } else {
+          // Try to create the room if it doesn't exist
+          try {
+            const createResponse = await api.post('/api/rooms', { roomCode });
+            if (createResponse.data.success) {
+              setLoading(false);
+              setJoined(true);
+            } else {
+              setJoinError('Failed to create room.');
+              setTimeout(() => {
+                navigate('/');
+              }, 2000);
+            }
+          } catch (createError) {
+            console.error('Error creating room:', createError);
             setJoinError('Failed to create room.');
             setTimeout(() => {
               navigate('/');
             }, 2000);
           }
-        });
+        }
+      } catch (error) {
+        console.error('Error checking room:', error);
+        setJoinError('Error checking room. Please try again.');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
       }
-    });
+    };
+
+    checkAndJoinRoom();
   }, [roomCode, navigate]);
 
   // Join the specified room and set up code update listener
@@ -463,7 +491,7 @@ function RoomEditor() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{joinError}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4 font-medium">{joinError}</p>
           <p className="text-slate-600 dark:text-slate-400">Redirecting to home...</p>
         </div>
       </div>
@@ -480,7 +508,7 @@ function RoomEditor() {
             <Code2 className="w-6 h-6 text-white" />
           </div>
           <span 
-            className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition"
+            className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
             onClick={() => navigate('/')}
           >
             CodeTogether
@@ -496,8 +524,8 @@ function RoomEditor() {
             <Share2 className="w-4 h-4 mr-2" />
             {saving ? 'Saving...' : 'Save & Share'}
           </Button>
-          {shareSuccess && <span className="text-green-500 font-medium">Link copied!</span>}
-          {saveSuccess && <span className="text-green-500 font-medium">Saved!</span>}
+          {shareSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Link copied!</span>}
+          {saveSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Saved!</span>}
           <Button
             onClick={handleDownloadCode}
             variant="outline"
@@ -617,7 +645,7 @@ function RoomEditor() {
 }
 
 /**
- * Main App component for CodeShareClone
+ * Main App component for CodeTogether
  * - Handles theme toggle (dark/light)
  * - Allows joining a room for collaboration
  * - Integrates Monaco Editor with language selection

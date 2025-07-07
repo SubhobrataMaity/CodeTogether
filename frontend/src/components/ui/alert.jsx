@@ -3,8 +3,10 @@ import { cn } from "../../lib/utils"
 
 const alertVariants = {
   variant: {
-    default: "bg-background text-foreground",
-    destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+    default: "bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-200",
+    destructive: "border-red-300 bg-red-50 text-red-700 dark:border-red-500/50 dark:bg-red-950/30 dark:text-red-200 [&>svg]:text-red-600 dark:[&>svg]:text-red-400",
+    warning: "border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-500/50 dark:bg-orange-950/30 dark:text-orange-200 [&>svg]:text-orange-600 dark:[&>svg]:text-orange-400",
+    success: "border-green-300 bg-green-50 text-green-700 dark:border-green-500/50 dark:bg-green-950/30 dark:text-green-200 [&>svg]:text-green-600 dark:[&>svg]:text-green-400",
   },
 }
 

@@ -1,12 +1,23 @@
 {
-  "name": "codeshareclone",
+  "name": "codetogether",
+  "version": "1.0.0",
+  "description": "Real-time collaborative coding platform",
   "private": true,
-  "workspaces": ["client", "server"],
+  "workspaces": ["frontend", "backend"],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=client\" \"npm run dev --workspace=server\"",
-    "install:all": "npm install --workspaces"
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
+    "install:all": "npm install --workspaces",
+    "clean": "npm run clean --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   }
 } 
