@@ -109,17 +109,22 @@ function LandingPage() {
   // Handle creating a new room
   const handleCreateRoom = async () => {
     const newRoom = generateRoomCode();
+    console.log('Creating room with code:', newRoom);
     try {
       const response = await api.post('/api/rooms', { roomCode: newRoom });
+      console.log('Room creation response:', response.data);
       if (response.data.success) {
         // Use the normalized room code from the response
+        console.log('Navigating to room:', response.data.roomCode);
         navigate(`/room/${response.data.roomCode}`);
       } else {
         // If creation fails, try again
+        console.log('Room creation failed, retrying...');
         handleCreateRoom();
       }
     } catch (error) {
       console.error('Error creating room:', error);
+      console.error('Error details:', error.response?.data || error.message);
       // If API fails, try again
       handleCreateRoom();
     }
@@ -132,16 +137,21 @@ function LandingPage() {
     setLoading(true);
     setJoinError('');
     
+    console.log('Checking room with code:', joinCode);
     try {
       const response = await api.get(`/api/rooms/${joinCode}`);
+      console.log('Room check response:', response.data);
       if (response.data.exists) {
         // Use the normalized room code (uppercase) for navigation
+        console.log('Room exists, navigating to:', joinCode.toUpperCase());
         navigate(`/room/${joinCode.toUpperCase()}`);
       } else {
+        console.log('Room does not exist');
         setJoinError('No Session found with that code.');
       }
     } catch (error) {
       console.error('Error checking room:', error);
+      console.error('Error details:', error.response?.data || error.message);
       setJoinError('Error checking room. Please try again.');
     } finally {
       setLoading(false);
@@ -391,19 +401,26 @@ function RoomEditor() {
     setJoinError('');
     
     const checkAndJoinRoom = async () => {
+      console.log('Checking/joining room:', roomCode);
       try {
         const response = await api.get(`/api/rooms/${roomCode}`);
+        console.log('Room check response:', response.data);
         if (response.data.exists) {
+          console.log('Room exists, joining...');
           setLoading(false);
           setJoined(true);
         } else {
+          console.log('Room does not exist, creating...');
           // Try to create the room if it doesn't exist
           try {
             const createResponse = await api.post('/api/rooms', { roomCode });
+            console.log('Room creation response:', createResponse.data);
             if (createResponse.data.success) {
+              console.log('Room created successfully');
               setLoading(false);
               setJoined(true);
             } else {
+              console.log('Room creation failed');
               setJoinError('Failed to create room.');
               setTimeout(() => {
                 navigate('/');
@@ -411,6 +428,7 @@ function RoomEditor() {
             }
           } catch (createError) {
             console.error('Error creating room:', createError);
+            console.error('Create error details:', createError.response?.data || createError.message);
             setJoinError('Failed to create room.');
             setTimeout(() => {
               navigate('/');
@@ -419,6 +437,7 @@ function RoomEditor() {
         }
       } catch (error) {
         console.error('Error checking room:', error);
+        console.error('Check error details:', error.response?.data || error.message);
         setJoinError('Error checking room. Please try again.');
         setTimeout(() => {
           navigate('/');

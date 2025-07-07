@@ -85,17 +85,24 @@ app.get('/api/health', (req, res) => {
 // API endpoint to create a room
 app.post('/api/rooms', (req, res) => {
   const { roomCode: code } = req.body;
+  console.log('Creating room with code:', code);
+  
   if (!code || code.length !== 6) {
+    console.log('Invalid room code:', code);
     return res.status(400).json({ error: 'Invalid room code' });
   }
   
   // Normalize room code to uppercase for consistency
   const normalizedCode = code.toUpperCase();
+  console.log('Normalized room code:', normalizedCode);
   
   activeRooms.add(normalizedCode);
   if (!roomCode[normalizedCode]) {
     roomCode[normalizedCode] = '// Start coding!';
   }
+  
+  console.log('Active rooms:', Array.from(activeRooms));
+  console.log('Room codes:', Object.keys(roomCode));
   
   res.json({ success: true, roomCode: normalizedCode });
 });
@@ -103,9 +110,17 @@ app.post('/api/rooms', (req, res) => {
 // API endpoint to check if a room exists
 app.get('/api/rooms/:roomCode', (req, res) => {
   const { roomCode: code } = req.params;
+  console.log('Checking room with code:', code);
+  
   // Normalize room code to uppercase for consistency
   const normalizedCode = code.toUpperCase();
+  console.log('Normalized room code:', normalizedCode);
+  
   const exists = activeRooms.has(normalizedCode) || roomCode[normalizedCode];
+  console.log('Room exists:', exists);
+  console.log('Active rooms:', Array.from(activeRooms));
+  console.log('Room codes:', Object.keys(roomCode));
+  
   res.json({ exists: !!exists });
 });
 
