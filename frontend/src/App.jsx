@@ -466,6 +466,9 @@ function RoomEditor() {
   const handleCodeChange = (value) => {
     setUnsavedCode(value);
     setSaveSuccess(false);
+    if (joined && (isCreator || permission === 'edit')) {
+      socketRef.current.emit('code-change', { room: roomCode, code: value });
+    }
   };
 
   // Save & Share button handler
@@ -521,20 +524,21 @@ function RoomEditor() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-md border-b border-white/20 dark:border-slate-700/30">
-        <div className="flex items-center">
+      <div className="flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-md border-b border-white/20 dark:border-slate-700/30 overflow-x-auto">
+        <div className="flex items-center min-w-0">
           <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg mr-3">
             <Code2 className="w-6 h-6 text-white" />
           </div>
           <span 
-            className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+            className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 whitespace-nowrap"
             onClick={() => navigate('/')}
           >
             CodeTogether
           </span>
-          <span className="ml-6 px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-lg">Session: {roomCode}</span>
+          <span className="ml-6 px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-lg whitespace-nowrap">Session: {roomCode}</span>
         </div>
-        <div className="flex items-center space-x-4">
+        {/* On mobile, stack the action buttons below the header */}
+        <div className="hidden sm:flex items-center space-x-4 flex-shrink-0">
           <Button
             onClick={handleSaveAndShare}
             disabled={saving || (unsavedCode === code && !saveSuccess) || (permission === 'view' && !isCreator)}
@@ -591,16 +595,72 @@ function RoomEditor() {
           </Button>
         </div>
       </div>
-      
+      {/* Mobile action buttons below header */}
+      <div className="flex flex-wrap gap-2 px-4 py-2 sm:hidden justify-center bg-white/80 dark:bg-slate-800/80 border-b border-white/20 dark:border-slate-700/30">
+        <Button
+          onClick={handleSaveAndShare}
+          disabled={saving || (unsavedCode === code && !saveSuccess) || (permission === 'view' && !isCreator)}
+          className={`bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white border-0 px-4 py-2 rounded-lg font-semibold transition shadow-md flex items-center ${saving ? 'cursor-not-allowed' : ''}`}
+        >
+          <Share2 className="w-4 h-4 mr-2" />
+          {saving ? 'Saving...' : 'Save & Share'}
+        </Button>
+        {shareSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Link copied!</span>}
+        {saveSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Saved!</span>}
+        <Button
+          onClick={handleDownloadCode}
+          variant="outline"
+          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0 px-4"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download
+        </Button>
+        <select
+          value={language}
+          onChange={e => setLanguage(e.target.value)}
+          className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="java">Java</option>
+          <option value="csharp">C#</option>
+          <option value="cpp">C++</option>
+          <option value="typescript">TypeScript</option>
+          <option value="go">Go</option>
+          <option value="php">PHP</option>
+          <option value="ruby">Ruby</option>
+        </select>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSettingsOpen(true)}
+          className="rounded-full bg-transparent border-0"
+          title="Settings"
+        >
+          <Settings className="w-5 h-5" style={{ color: theme === 'dark' ? '#fff' : undefined }} />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleTheme}
+          className="rounded-full bg-transparent"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4" style={{ color: '#FFD600', border: '2px solid #FFD600', borderRadius: '9999px', boxSizing: 'content-box' }} />
+          ) : (
+            <Moon className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
       {/* Monaco Editor for collaborative coding */}
-      <div className="flex flex-col flex-1 min-h-0" style={{ height: 'calc(100vh - 80px)' }}>
-        <div className="flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           <Editor
-            height="100%"
+            height="90vh"
             theme={theme === 'dark' ? 'vs-dark' : 'light'}
             language={language}
             value={unsavedCode}
-            onChange={permission === 'edit' || isCreator ? handleCodeChange : undefined}
+            onChange={handleCodeChange}
             options={{
               fontSize: fontSize,
               minimap: { enabled: false },
@@ -612,12 +672,11 @@ function RoomEditor() {
               lineNumbers: 'on',
               renderLineHighlight: 'all',
               automaticLayout: true,
-              readOnly: permission === 'view' && !isCreator,
+              readOnly: false,
             }}
           />
         </div>
       </div>
-
       {/* Settings Modal */}
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -642,19 +701,7 @@ function RoomEditor() {
               />
               <div className="text-center mt-2 text-slate-600 dark:text-slate-300">{fontSize}px</div>
             </div>
-            {isCreator && (
-              <div className="mb-6">
-                <label className="block mb-2 font-medium text-slate-700 dark:text-slate-200">Permission</label>
-                <select
-                  value={permission}
-                  onChange={e => setPermission(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                >
-                  <option value="edit">Editable (Everyone can edit)</option>
-                  <option value="view">View Only (Only you can edit)</option>
-                </select>
-              </div>
-            )}
+            {/* Permission option removed */}
             <Button onClick={() => setSettingsOpen(false)} className="w-full mt-2">Close</Button>
           </div>
         </div>
