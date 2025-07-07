@@ -524,24 +524,26 @@ function RoomEditor() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       {/* Header bar */}
-      <div className="flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-md border-b border-white/20 dark:border-slate-700/30 overflow-x-auto">
-        <div className="flex items-center min-w-0">
-          <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg mr-3">
-            <Code2 className="w-6 h-6 text-white" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-2 sm:px-8 py-2 sm:py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-md border-b border-white/20 dark:border-slate-700/30">
+        <div className="flex flex-row items-center justify-between w-full sm:w-auto gap-2 sm:gap-3">
+          <div className="flex flex-row items-center gap-2 sm:gap-3">
+            <div className="p-1 sm:p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg">
+              <Code2 className="w-6 h-6 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <span 
+              className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 whitespace-nowrap"
+              onClick={() => navigate('/')}
+            >
+              CodeTogether
+            </span>
           </div>
-          <span 
-            className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 whitespace-nowrap"
-            onClick={() => navigate('/')}
-          >
-            CodeTogether
-          </span>
-          <span className="ml-6 px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-lg whitespace-nowrap">Session: {roomCode}</span>
+          <span className="px-2 sm:ml-6 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-mono text-sm sm:text-lg whitespace-nowrap">Session: {roomCode}</span>
         </div>
-        {/* On mobile, stack the action buttons below the header */}
+        {/* Desktop action buttons */}
         <div className="hidden sm:flex items-center space-x-4 flex-shrink-0">
           <Button
             onClick={handleSaveAndShare}
-            disabled={saving || (unsavedCode === code && !saveSuccess) || (permission === 'view' && !isCreator)}
+            disabled={saving || (unsavedCode === code && !saveSuccess)}
             className={`bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white border-0 px-6 py-2 rounded-lg font-semibold transition shadow-md flex items-center ${saving ? 'cursor-not-allowed' : ''}`}
           >
             <Share2 className="w-4 h-4 mr-2" />
@@ -596,21 +598,21 @@ function RoomEditor() {
         </div>
       </div>
       {/* Mobile action buttons below header */}
-      <div className="flex flex-wrap gap-2 px-4 py-2 sm:hidden justify-center bg-white/80 dark:bg-slate-800/80 border-b border-white/20 dark:border-slate-700/30">
+      <div className="flex flex-col gap-2 px-2 py-2 sm:hidden justify-center bg-white/80 dark:bg-slate-800/80 border-b border-white/20 dark:border-slate-700/30 w-full">
         <Button
           onClick={handleSaveAndShare}
-          disabled={saving || (unsavedCode === code && !saveSuccess) || (permission === 'view' && !isCreator)}
-          className={`bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white border-0 px-4 py-2 rounded-lg font-semibold transition shadow-md flex items-center ${saving ? 'cursor-not-allowed' : ''}`}
+          disabled={saving || (unsavedCode === code && !saveSuccess)}
+          className={`w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white border-0 px-4 py-2 rounded-lg font-semibold transition shadow-md flex items-center justify-center ${saving ? 'cursor-not-allowed' : ''}`}
         >
           <Share2 className="w-4 h-4 mr-2" />
           {saving ? 'Saving...' : 'Save & Share'}
         </Button>
-        {shareSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Link copied!</span>}
-        {saveSuccess && <span className="text-green-600 dark:text-green-400 font-medium">Saved!</span>}
+        {shareSuccess && <span className="text-green-600 dark:text-green-400 font-medium text-center">Link copied!</span>}
+        {saveSuccess && <span className="text-green-600 dark:text-green-400 font-medium text-center">Saved!</span>}
         <Button
           onClick={handleDownloadCode}
           variant="outline"
-          className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0 px-4"
+          className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-0 px-4"
         >
           <Download className="w-4 h-4 mr-2" />
           Download
@@ -618,7 +620,7 @@ function RoomEditor() {
         <select
           value={language}
           onChange={e => setLanguage(e.target.value)}
-          className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           <option value="javascript">JavaScript</option>
           <option value="python">Python</option>
@@ -630,27 +632,29 @@ function RoomEditor() {
           <option value="php">PHP</option>
           <option value="ruby">Ruby</option>
         </select>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setSettingsOpen(true)}
-          className="rounded-full bg-transparent border-0"
-          title="Settings"
-        >
-          <Settings className="w-5 h-5" style={{ color: theme === 'dark' ? '#fff' : undefined }} />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleTheme}
-          className="rounded-full bg-transparent"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-4 h-4" style={{ color: '#FFD600', border: '2px solid #FFD600', borderRadius: '9999px', boxSizing: 'content-box' }} />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
-        </Button>
+        <div className="flex gap-2 w-full">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            className="rounded-full bg-transparent border-0 flex-1"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5 mx-auto" style={{ color: theme === 'dark' ? '#fff' : undefined }} />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleTheme}
+            className="rounded-full bg-transparent flex-1"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 mx-auto" style={{ color: '#FFD600', border: '2px solid #FFD600', borderRadius: '9999px', boxSizing: 'content-box' }} />
+            ) : (
+              <Moon className="w-4 h-4 mx-auto" />
+            )}
+          </Button>
+        </div>
       </div>
       {/* Monaco Editor for collaborative coding */}
       <div className="flex flex-col flex-1 min-h-0 overflow-auto">
